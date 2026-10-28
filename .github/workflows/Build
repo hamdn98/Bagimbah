@@ -1,0 +1,34 @@
+name: Build APK
+on: [push, workflow_dispatch]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ekstrak zip jika ada
+        run: |
+          for z in *.zip; do
+            if [ -f "$z" ]; then unzip -oq "$z"; fi
+          done
+
+      - name: Cari folder proyek
+        id: p
+        run: |
+          S=$(find . -name settings.gradle.kts | head -1)
+          echo "dir=$(dirname "$S")" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: 17 }
+
+      - uses: gradle/actions/setup-gradle@v4
+        with: { gradle-version: 8.9 }
+
+      - name: Build
+        working-directory: ${{ steps.p.outputs.dir }}
+        run: gradle assembleRelease --no-daemon
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LanShare-apk
+          path: ${{ steps.p.outputs.dir }}/app/build/outputs/apk/release/*.apk
